@@ -100,7 +100,7 @@ const FormComponent = ({ onSubmit, task }) => {
 
                 console.log('Scheduled Data:', scheduledData);
                 // Sending data to server using POST method
-                fetch('http://localhost:3001/api/data', {
+                fetch('https://server-pass-1.onrender.com/api/data', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
