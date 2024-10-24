@@ -23,7 +23,7 @@ const DeliveryDetail = () => {
   useEffect(() => {
     const fetchDeliveryDetails = async () => {
       try {
-        const response = await fetch(`http://localhost:3001/api/data`);
+        const response = await fetch(`https://server-pass-1.onrender.com/api/data`);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
