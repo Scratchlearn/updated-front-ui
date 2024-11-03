@@ -16,25 +16,73 @@ const FormComponent = ({ onSubmit, task }) => {
     const [numberOfDays, setNumberOfDays] = useState(0);
 
     useEffect(() => {
-        if (task) {
-            form.setFieldsValue({
-                name: task.Task_Details || '',
-            });
-            setStartDate(task.Planned_Start_Timestamp ? moment(task.Planned_Start_Timestamp) : null);
-            setEndDate(task.Planned_Delivery_Timestamp ? moment(task.Planned_Delivery_Timestamp) : null);
-            setPersonResponsible(task.Responsibility || '');
-            // Assuming totalTime is stored in task.totalTime in minutes
-            setHours(task.totalTime ? { 0: task.totalTime } : {});
-        }
+        const fetchTaskData = async () => {
+            try {
+                if (task) {
+                    form.setFieldsValue({
+                        name: task.Task_Details || '',
+                    });
+                    setPersonResponsible(task.Responsibility || '');
+    
+                    // Fetch additional data for start and end dates and total duration
+                    const response = await fetch(`http://localhost:3001/api/per-key-per-day`);
+                    const data = await response.json();
+    
+                    const taskData = data[task.Key];
+                    if (taskData) {
+                        const taskEntries = taskData.entries;
+                         console.log(taskData.totalDuration)
+                        // Convert totalDuration from minutes to hours and minutes
+                        const totalMinutes = taskData.totalDuration || 0;
+                        const hours = Math.floor(totalMinutes / 60);
+                        console.log(hours);
+                        const minutes = totalMinutes % 60;
+                        console.log(minutes)
+                        setHours({0:`${hours}h ${minutes}m` }); // Format as 'xh ym'
+                        console.log()
+                        // Filter entries with valid dates
+                        const validDays = taskEntries
+                            .map((entry) => entry.Day?.value)
+                            .filter((date) => date);
+    
+                        // Determine the start and end dates based on min and max values
+                        if (validDays.length > 0) {
+                            const start = moment.min(validDays.map((d) => moment(d)));
+                            const end = moment.max(validDays.map((d) => moment(d)));
+    
+                            setStartDate(start);
+                            setEndDate(end);
+    
+                            // Calculate the number of days between start and end dates
+                            const daysDiff = end.diff(start, 'days') + 1;
+                            setNumberOfDays(daysDiff);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching task data:", error);
+            }
+        };
+    
+        fetchTaskData();
     }, [task, form]);
+    
 
-    const handleStartDateChange = (date) => {
-        setStartDate(date);
-        if (date && numberOfDays) {
-            calculateEndDate(date, numberOfDays);
+    const handleStartDateChange = (e) => {
+        const inputDate = e.target.value;
+        const parsedDate = moment(inputDate, 'YYYY-MM-DD', true); // Adjust format as needed
+
+        if (parsedDate.isValid()) {
+
+            setStartDate(parsedDate);
+            if (numberOfDays) {
+                calculateEndDate(parsedDate, numberOfDays);
+            }
+        } else {
+            // Optionally show an error if the date is invalid
+            console.error("Invalid date format. Please use 'YYYY-MM-DD'");
         }
     };
-
     const handleNumberOfDaysChange = (days) => {
         const numericDays = parseInt(days, 10) || 0;
         setNumberOfDays(numericDays);
@@ -48,7 +96,6 @@ const FormComponent = ({ onSubmit, task }) => {
             const calculatedEndDate = moment(start).add(days - 1, 'days');
             setEndDate(calculatedEndDate);
             setSliderCount(days);
-            setHours({});
         } else {
             setEndDate(null);
             setSliderCount(0);
@@ -82,8 +129,8 @@ const FormComponent = ({ onSubmit, task }) => {
                     Frequency___Timeline: task.Frequency___Timeline,
                     Client: task.Client,
                     Short_description: task.Short_description,
-                    Planned_Start_Timestamp: startDate ? { value: moment(startDate).toISOString() } : null,
-                    Planned_Delivery_Timestamp: endDate ? { value: moment(endDate).toISOString() } : null,
+                    Planned_Start_Timestamp: startDate ? { value: moment(startDate).add(1, 'days').toISOString() } : null,
+                    Planned_Delivery_Timestamp: endDate ? { value: moment(endDate).add(1, 'days').toISOString() } : null,
                     Responsibility: personResponsible,
                     Current_Status: task.Current_Status,
                     Total_Tasks: task.Total_Tasks,
@@ -124,15 +171,8 @@ const FormComponent = ({ onSubmit, task }) => {
                             totalTime,
                             Planned_Delivery_Timestamp: scheduledData.Planned_Delivery_Timestamp,
                         });
-                        // Reset form and states after submission
-                        form.resetFields();
-                        setStartDate(null);
-                        setEndDate(null);
-                        setNumberOfDays(0);
-                        setSliderCount(0);
-                        setHours({});
-                        setPersonResponsible('');
-                        setDeliverySlot(null); // Reset delivery slot as well
+                        //Reset form and states after submission
+                        // Reset delivery slot as well
                     })
                     .catch((error) => {
                         notification.error({
@@ -189,9 +229,11 @@ const FormComponent = ({ onSubmit, task }) => {
             <Row gutter={[8, 16]}>
                 <Col xs={24} sm={8}>
                     <Form.Item label="Start Date">
-                        <DatePicker
+                        <Input
+                            type="date"
                             onChange={handleStartDateChange}
-                            value={startDate ? moment(startDate) : null}
+                            value={startDate ? startDate.format('YYYY-MM-DD') : ''} // Show formatted date if available
+                            placeholder="Enter start date (YYYY-MM-DD)"
                             style={{ width: '100%' }}
                         />
                     </Form.Item>
@@ -210,6 +252,7 @@ const FormComponent = ({ onSubmit, task }) => {
                 <Col xs={24} sm={8}>
                     <Form.Item label="End Date">
                         <DatePicker
+                            type='date'
                             value={endDate ? moment(endDate) : null}
                             disabled
                             style={{ width: '100%' }}
@@ -280,3 +323,4 @@ const FormComponent = ({ onSubmit, task }) => {
 };
 
 export default FormComponent;
+
