@@ -26,14 +26,14 @@ const DeliveryDetail = () => {
                 setLoading(true); // Set loading state to true
 
                 // Fetch delivery data
-                const deliveryResponse = await fetch(`http://localhost:3001/api/data`);
+                const deliveryResponse = await fetch(`https://server-pass-1.onrender.com/api/data`);
                 if (!deliveryResponse.ok) {
                     throw new Error(`HTTP error! status: ${deliveryResponse.status}`);
                 }
                 const deliveryData = await deliveryResponse.json();
 
                 // Fetch totalDuration data
-                const durationResponse = await fetch(`http://localhost:3001/api/per-key-per-day`);
+                const durationResponse = await fetch(`https://server-pass-1.onrender.com/api/per-key-per-day`);
                 if (!durationResponse.ok) {
                     throw new Error(`HTTP error! status: ${durationResponse.status}`);
                 }
