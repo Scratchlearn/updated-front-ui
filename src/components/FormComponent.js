@@ -25,7 +25,7 @@ const FormComponent = ({ onSubmit, task }) => {
                     setPersonResponsible(task.Responsibility || '');
     
                     // Fetch additional data for start and end dates and total duration
-                    const response = await fetch(`http://localhost:3001/api/per-key-per-day`);
+                    const response = await fetch(`https://server-pass-1.onrender.com/api/per-key-per-day`);
                     const data = await response.json();
     
                     const taskData = data[task.Key];
