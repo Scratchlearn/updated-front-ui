@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Slider, DatePicker, Select, notification, Row, Col } from 'antd';
 import moment from 'moment';
@@ -14,6 +16,7 @@ const FormComponent = ({ onSubmit, task }) => {
     const [deliverySlot, setDeliverySlot] = useState(null);
     const [personResponsible, setPersonResponsible] = useState('');
     const [numberOfDays, setNumberOfDays] = useState(0);
+    const [existingSchedules, setExistingSchedules] = useState({});
 
     useEffect(() => {
         const fetchTaskData = async () => {
@@ -23,66 +26,75 @@ const FormComponent = ({ onSubmit, task }) => {
                         name: task.Task_Details || '',
                     });
                     setPersonResponsible(task.Responsibility || '');
-    
-                    // Fetch additional data for start and end dates and total duration
-                    const response = await fetch(`https://server-pass-1.onrender.com/api/per-key-per-day`);
+
+                    // Fetch data per key per day
+                    const response = await fetch(`http://localhost:3001/api/per-key-per-day`);
                     const data = await response.json();
-    
+
                     const taskData = data[task.Key];
                     if (taskData) {
                         const taskEntries = taskData.entries;
-                         console.log(taskData.totalDuration)
+
                         // Convert totalDuration from minutes to hours and minutes
                         const totalMinutes = taskData.totalDuration || 0;
                         const hours = Math.floor(totalMinutes / 60);
-                        console.log(hours);
                         const minutes = totalMinutes % 60;
-                        console.log(minutes)
-                        setHours({0:`${hours}h ${minutes}m` }); // Format as 'xh ym'
-                        console.log()
-                        // Filter entries with valid dates
+                        setHours({ 0: `${hours}h ${minutes}m` });
+
                         const validDays = taskEntries
                             .map((entry) => entry.Day?.value)
                             .filter((date) => date);
-    
-                        // Determine the start and end dates based on min and max values
+
                         if (validDays.length > 0) {
                             const start = moment.min(validDays.map((d) => moment(d)));
                             const end = moment.max(validDays.map((d) => moment(d)));
-    
+
                             setStartDate(start);
                             setEndDate(end);
-    
-                            // Calculate the number of days between start and end dates
+
                             const daysDiff = end.diff(start, 'days') + 1;
                             setNumberOfDays(daysDiff);
                         }
                     }
+
+                    // Fetch data per person per day
+                    const perPersonResponse = await fetch(`http://localhost:3001/api/per-person-per-day`);
+                    const perPersonData = await perPersonResponse.json();
+
+                    const schedules = {};
+                    perPersonData.forEach((entry) => {
+                        const { Responsibility, Day, Duration_In_Minutes } = entry;
+                        const date = Day.value;
+                        if (!schedules[Responsibility]) {
+                            schedules[Responsibility] = {};
+                        }
+                        schedules[Responsibility][date] = Duration_In_Minutes;
+                    });
+
+                    setExistingSchedules(schedules);
                 }
             } catch (error) {
                 console.error("Error fetching task data:", error);
             }
         };
-    
+
         fetchTaskData();
     }, [task, form]);
-    
 
     const handleStartDateChange = (e) => {
         const inputDate = e.target.value;
-        const parsedDate = moment(inputDate, 'YYYY-MM-DD', true); // Adjust format as needed
+        const parsedDate = moment(inputDate, 'YYYY-MM-DD', true);
 
         if (parsedDate.isValid()) {
-
             setStartDate(parsedDate);
             if (numberOfDays) {
                 calculateEndDate(parsedDate, numberOfDays);
             }
         } else {
-            // Optionally show an error if the date is invalid
             console.error("Invalid date format. Please use 'YYYY-MM-DD'");
         }
     };
+
     const handleNumberOfDaysChange = (days) => {
         const numericDays = parseInt(days, 10) || 0;
         setNumberOfDays(numericDays);
@@ -113,7 +125,7 @@ const FormComponent = ({ onSubmit, task }) => {
                 const totalTime = calculateTotalTime();
                 const slidersData = Array.from({ length: sliderCount }).map((_, index) => {
                     const calculatedDay = moment(startDate).add(index, 'days');
-                    const formattedDay = calculatedDay.isValid() ? calculatedDay.format('YYYY-MM-DD') : null; // Check validity
+                    const formattedDay = calculatedDay.isValid() ? calculatedDay.format('YYYY-MM-DD') : null;
                     return {
                         day: formattedDay,
                         duration: hours[index] || 0,
@@ -142,11 +154,11 @@ const FormComponent = ({ onSubmit, task }) => {
                     Time_Left_For_Next_Task_dd_hh_mm_ss: task.Time_Left_For_Next_Task_dd_hh_mm_ss,
                     Percent_Delivery_Planned: task.Percent_Delivery_Planned,
                     Card_Corner_Status: task.Card_Corner_Status,
-                    sliders: slidersData, // Use the slidersData created above
+                    sliders: slidersData,
                 };
 
                 console.log('Scheduled Data:', scheduledData);
-                // Sending data to server using POST method
+
                 fetch('https://server-pass-1.onrender.com/api/data', {
                     method: 'POST',
                     headers: {
@@ -165,14 +177,11 @@ const FormComponent = ({ onSubmit, task }) => {
                             message: 'Task Updated',
                             description: 'Your task has been successfully updated!',
                         });
-                        // Inform the parent component about the update
                         onSubmit({
                             personResponsible,
                             totalTime,
                             Planned_Delivery_Timestamp: scheduledData.Planned_Delivery_Timestamp,
                         });
-                        //Reset form and states after submission
-                        // Reset delivery slot as well
                     })
                     .catch((error) => {
                         notification.error({
@@ -190,6 +199,15 @@ const FormComponent = ({ onSubmit, task }) => {
     };
 
     const handleSliderChange = (index, value) => {
+        const currentDay = moment(startDate).add(index, 'days').format('YYYY-MM-DD');
+        const maxAllowedMinutes = 480; // 8 hours in minutes
+
+        if (existingSchedules[personResponsible]?.[currentDay]) {
+            const alreadyScheduledMinutes = existingSchedules[personResponsible][currentDay];
+            const remainingMinutes = maxAllowedMinutes - alreadyScheduledMinutes;
+            value = Math.min(value, remainingMinutes);
+        }
+
         setHours((prev) => ({ ...prev, [index]: value }));
     };
 
@@ -198,9 +216,19 @@ const FormComponent = ({ onSubmit, task }) => {
         if (isNaN(numericValue)) {
             numericValue = 0;
         }
+
+        const currentDay = moment(startDate).add(index, 'days').format('YYYY-MM-DD');
+        const maxAllowedMinutes = 480;
+
+        if (existingSchedules[personResponsible]?.[currentDay]) {
+            const alreadyScheduledMinutes = existingSchedules[personResponsible][currentDay];
+            const remainingMinutes = maxAllowedMinutes - alreadyScheduledMinutes;
+            numericValue = Math.min(numericValue, remainingMinutes);
+        }
+
         setHours((prev) => ({
             ...prev,
-            [index]: numericValue > 480 ? 480 : numericValue < 1 ? 1 : numericValue,
+            [index]: numericValue < 1 ? 1 : numericValue,
         }));
     };
 
@@ -323,4 +351,3 @@ const FormComponent = ({ onSubmit, task }) => {
 };
 
 export default FormComponent;
-
