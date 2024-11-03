@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Row, Col, Card, ProgressBar, Form } from 'react-bootstrap';
 import { FiClock, FiCheckCircle, FiFlag } from 'react-icons/fi';
@@ -10,50 +9,41 @@ import './DeliveryList.css';
 const DeliveryList = () => {
   const [deliveries, setDeliveries] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [visibleDeliveries, setVisibleDeliveries] = useState(10); // Start by showing 10
+  const [page, setPage] = useState(0); // Current page for pagination
+  const [loading, setLoading] = useState(false); // Loading indicator
   const observer = useRef(null);
+  const limit = 10; // Number of deliveries to fetch per page
+
+  const fetchData = useCallback(async (currentPage) => {
+    try {
+      setLoading(true); // Show loading indicator
+      const offset = currentPage * limit;
+      const response = await fetch(`http://localhost:3001/api/data?limit=${limit}&offset=${offset}`);
+      const data = await response.json();
+
+      const tasksArray = Object.values(data).flat();
+      const filteredDeliveries = tasksArray.filter((delivery) => delivery.Step_ID === 0);
+
+      const newDeliveries = filteredDeliveries.map((delivery) => ({
+        delCode: delivery.DelCode_w_o__,
+        client: `${delivery.Short_description} for ${delivery.Client}`,
+        initiated: formatTimestamp(delivery.Planned_Start_Timestamp),
+        deadline: calculateDeadline(delivery.Planned_Delivery_Timestamp, delivery.Planned_Start_Timestamp),
+        tasksPlanned: delivery.Planned_Tasks || 0,
+        tasksTotal: delivery.Total_Tasks || 0,
+      }));
+
+      setDeliveries((prev) => [...prev, ...newDeliveries]);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false); // Hide loading indicator
+    }
+  }, [limit]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch('https://server-pass-1.onrender.com/api/data');
-        const data = await response.json();
-  
-        const tasksArray = Object.values(data).flat();
-        const filteredDeliveries = tasksArray.filter((delivery) => delivery.Step_ID === 0);
-  
-        const mappedDeliveries = filteredDeliveries.map((delivery) => ({
-          delCode: delivery.DelCode_w_o__,
-          client: `${delivery.Short_description} for ${delivery.Client}`,
-          initiated: formatTimestamp(delivery.Planned_Start_Timestamp),
-          deadline: calculateDeadline(delivery.Planned_Delivery_Timestamp, delivery.Planned_Start_Timestamp),
-          tasksPlanned: delivery.Planned_Tasks || 0,
-          tasksTotal: delivery.Total_Tasks || 0,
-        }));
-  
-        // Cache the data
-        localStorage.setItem('deliveries', JSON.stringify(mappedDeliveries));
-        localStorage.setItem('cacheTime', Date.now());
-  
-        setDeliveries(mappedDeliveries);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-  
-    const cachedData = localStorage.getItem('deliveries');
-    const cacheTime = localStorage.getItem('cacheTime');
-    const isCacheValid = cacheTime && (Date.now() - cacheTime) < 3600000; // Cache valid for 1 hour
-  
-    if (cachedData && isCacheValid) {
-      // Use cached deliveries if available and valid
-      setDeliveries(JSON.parse(cachedData));
-    } else {
-      // Fetch data if cache is missing or expired
-      fetchData();
-    }
-  }, []);
-  
+    fetchData(0); // Fetch the first page on mount
+  }, [fetchData]);
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'No start time';
@@ -88,8 +78,8 @@ const DeliveryList = () => {
 
     const loadMoreDeliveries = (entries) => {
       const [entry] = entries;
-      if (entry.isIntersecting) {
-        setVisibleDeliveries((prev) => prev + 5); // Load 5 more deliveries when the user scrolls down
+      if (entry.isIntersecting && !loading) {
+        setPage((prevPage) => prevPage + 1);
       }
     };
 
@@ -101,7 +91,14 @@ const DeliveryList = () => {
     return () => {
       if (observer.current) observer.current.disconnect();
     };
-  }, [filteredDeliveries]);
+  }, [filteredDeliveries, loading]);
+
+  // Fetch more data whenever `page` changes
+  useEffect(() => {
+    if (page > 0) {
+      fetchData(page);
+    }
+  }, [page, fetchData]);
 
   return (
     <Container>
@@ -126,7 +123,7 @@ const DeliveryList = () => {
       <p>You have {filteredDeliveries.length} active deliveries</p>
 
       <Row>
-        {filteredDeliveries.slice(0, visibleDeliveries).map((delivery) => {
+        {filteredDeliveries.map((delivery) => {
           const progress = delivery.tasksTotal === 0 ? 0 : (delivery.tasksPlanned / delivery.tasksTotal) * 100;
 
           return (
@@ -183,6 +180,12 @@ const DeliveryList = () => {
           );
         })}
       </Row>
+
+      {loading && (
+        <div className="text-center my-4">
+          <FaSpinner className="spinner-icon" style={{ fontSize: '2rem', color: '#007bff', animation: 'spin 1s linear infinite' }} />
+        </div>
+      )}
 
       <div className="delivery-list-end" style={{ height: '1px', marginBottom: '20px' }}></div>
     </Container>
