@@ -242,7 +242,7 @@ const DeliveryList = () => {
         setLoading(true);
         const offset = currentPage * limit;
         const response = await fetch(
-          `http://localhost:3001/api/data?limit=${limit}&offset=${offset}`
+          `https://server-pass-1.onrender.com/api/data?limit=${limit}&offset=${offset}`
         );
 
         if (!response.ok) {
