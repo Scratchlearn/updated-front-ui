@@ -1,49 +1,285 @@
+// import React, { useState, useEffect, useRef, useCallback } from 'react';
+// import { Link } from 'react-router-dom';
+// import { Container, Row, Col, Card, ProgressBar, Form } from 'react-bootstrap';
+// import { FiClock, FiCheckCircle, FiFlag } from 'react-icons/fi';
+// import { FaSpinner } from 'react-icons/fa';
+// import LazyLoad from 'react-lazyload';
+// import './DeliveryList.css';
+
+// const DeliveryList = () => {
+//   const [deliveries, setDeliveries] = useState([]);
+//   const [searchTerm, setSearchTerm] = useState('');
+//   const [page, setPage] = useState(0); // Current page for pagination
+//   const [loading, setLoading] = useState(false); // Loading indicator
+//   const observer = useRef(null);
+//   const limit = 10; // Number of deliveries to fetch per page
+
+//   const fetchData = useCallback(async (currentPage) => {
+//     try {
+//       setLoading(true); // Show loading indicator
+//       const offset = currentPage * limit;
+//       const response = await fetch(`https://server-pass-1.onrender.com/api/data?limit=${limit}&offset=${offset}`);
+//       const data = await response.json();
+
+//       const tasksArray = Object.values(data).flat();
+//       const filteredDeliveries = tasksArray.filter((delivery) => delivery.Step_ID === 0);
+
+//       const newDeliveries = filteredDeliveries.map((delivery) => ({
+//         delCode: delivery.DelCode_w_o__,
+//         client: `${delivery.Short_description} for ${delivery.Client}`,
+//         initiated: formatTimestamp(delivery.Planned_Start_Timestamp),
+//         deadline: calculateDeadline(delivery.Planned_Delivery_Timestamp, delivery.Planned_Start_Timestamp),
+//         tasksPlanned: delivery.Planned_Tasks || 0,
+//         tasksTotal: delivery.Total_Tasks || 0,
+//       }));
+
+//       setDeliveries((prev) => [...prev, ...newDeliveries]);
+//     } catch (error) {
+//       console.error('Error fetching data:', error);
+//     } finally {
+//       setLoading(false); // Hide loading indicator
+//     }
+//   }, [limit]);
+
+//   useEffect(() => {
+//     fetchData(0); // Fetch the first page on mount
+//   }, [fetchData]);
+
+//   const formatTimestamp = (timestamp) => {
+//     if (!timestamp) return 'No start time';
+//     const date = new Date(timestamp?.value || timestamp);
+//     return isNaN(date.getTime()) ? 'Invalid date' : date.toLocaleString();
+//   };
+
+//   const calculateDeadline = (deliveryTimestamp, startTimestamp) => {
+//     if (deliveryTimestamp && startTimestamp) {
+//       const deliveryTime = new Date(deliveryTimestamp?.value || deliveryTimestamp);
+//       const startTime = new Date(startTimestamp?.value || startTimestamp);
+//       if (isNaN(deliveryTime.getTime()) || isNaN(startTime.getTime())) return 'Invalid deadline';
+
+//       const timeDiff = deliveryTime - startTime;
+//       const daysLeft = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+//       const hoursLeft = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+//       return `${daysLeft} days ${hoursLeft} hrs left`;
+//     }
+//     return 'No deadline';
+//   };
+
+//   const handleSearchChange = (event) => {
+//     setSearchTerm(event.target.value);
+//   };
+
+//   const filteredDeliveries = deliveries.filter((delivery) =>
+//     delivery.client.toLowerCase().includes(searchTerm.toLowerCase())
+//   );
+
+//   useEffect(() => {
+//     if (observer.current) observer.current.disconnect();
+
+//     const loadMoreDeliveries = (entries) => {
+//       const [entry] = entries;
+//       if (entry.isIntersecting && !loading) {
+//         setPage((prevPage) => prevPage + 1);
+//       }
+//     };
+
+//     observer.current = new IntersectionObserver(loadMoreDeliveries, { threshold: 1.0 });
+
+//     const lastDeliveryElement = document.querySelector('.delivery-list-end');
+//     if (lastDeliveryElement) observer.current.observe(lastDeliveryElement);
+
+//     return () => {
+//       if (observer.current) observer.current.disconnect();
+//     };
+//   }, [filteredDeliveries, loading]);
+
+//   // Fetch more data whenever `page` changes
+//   useEffect(() => {
+//     if (page > 0) {
+//       fetchData(page);
+//     }
+//   }, [page, fetchData]);
+
+//   return (
+//     <Container>
+//       <h1 className="my-4">List of Deliveries</h1>
+
+//       <Row className="mb-4">
+//         <Col xs={10}>
+//           <Form.Control
+//             type="text"
+//             placeholder="Search for deliveries..."
+//             value={searchTerm}
+//             onChange={handleSearchChange}
+//           />
+//         </Col>
+//         <Col xs={2} className="text-right">
+//           <span role="img" aria-label="filter" style={{ fontSize: '1.5rem', cursor: 'pointer' }}>
+//             🔍
+//           </span>
+//         </Col>
+//       </Row>
+
+//       <p>You have {filteredDeliveries.length} active deliveries</p>
+
+//       <Row>
+//         {filteredDeliveries.map((delivery) => {
+//           const progress = delivery.tasksTotal === 0 ? 0 : (delivery.tasksPlanned / delivery.tasksTotal) * 100;
+
+//           return (
+//             <Col xs={12} key={delivery.delCode} className="mb-3">
+//               <LazyLoad
+//                 height={200}
+//                 offset={100}
+//                 once
+//                 placeholder={
+//                   <div className="d-flex justify-content-center align-items-center" style={{ height: '200px' }}>
+//                     <FaSpinner className="spinner-icon" style={{ fontSize: '2rem', color: '#007bff', animation: 'spin 1s linear infinite' }} />
+//                   </div>
+//                 }
+//               >
+//                 <Link to={`/delivery/${delivery.delCode}`} className="card-link-wrapper">
+//                   <Card className="p-3 shadow-sm task-card">
+//                     <div
+//                       className="shaded-bg"
+//                       style={{ width: `${progress}%` }}
+//                     ></div>
+//                     <Card.Body>
+//                       <div className="d-flex justify-content-between align-items-center">
+//                         <div>
+//                           <div className="d-flex align-items-center mb-2">
+//                             <FiCheckCircle style={{ marginRight: '8px', color: 'green' }} />
+//                             <span className="font-weight-bold" style={{ fontSize: '1.5rem' }}>
+//                               {delivery.tasksPlanned} of {delivery.tasksTotal} Planned
+//                             </span>
+//                           </div>
+//                           <div className="mb-2">
+//                             <ProgressBar
+//                               now={progress}
+//                               variant={progress > 50 ? 'success' : progress > 20 ? 'warning' : 'danger'}
+//                             />
+//                           </div>
+//                         </div>
+//                         <div className="text-right">
+//                           <p className="mb-1 text-muted">
+//                             <FiClock style={{ marginRight: '5px' }} />
+//                             {delivery.initiated || 'No start time'}
+//                           </p>
+//                           <p className="mb-0 text-muted">
+//                             <FiFlag style={{ marginRight: '5px' }} />
+//                             {delivery.deadline}
+//                           </p>
+//                         </div>
+//                       </div>
+//                       <h5 className="mt-3">{delivery.client}</h5>
+//                     </Card.Body>
+//                   </Card>
+//                 </Link>
+//               </LazyLoad>
+//             </Col>
+//           );
+//         })}
+//       </Row>
+
+//       {loading && (
+//         <div className="text-center my-4">
+//           <FaSpinner className="spinner-icon" style={{ fontSize: '2rem', color: '#007bff', animation: 'spin 1s linear infinite' }} />
+//         </div>
+//       )}
+
+//       <div className="delivery-list-end" style={{ height: '1px', marginBottom: '20px' }}></div>
+//     </Container>
+//   );
+// };
+
+// export default DeliveryList;
+
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Row, Col, Card, ProgressBar, Form } from 'react-bootstrap';
 import { FiClock, FiCheckCircle, FiFlag } from 'react-icons/fi';
 import { FaSpinner } from 'react-icons/fa';
+import { GoogleLogin } from '@react-oauth/google'; // Import Google login
 import LazyLoad from 'react-lazyload';
+import {jwtDecode} from 'jwt-decode'; // Import jwt-decode library
 import './DeliveryList.css';
 
 const DeliveryList = () => {
+  const [userEmail, setUserEmail] = useState(null); // State for user email
   const [deliveries, setDeliveries] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [page, setPage] = useState(0); // Current page for pagination
-  const [loading, setLoading] = useState(false); // Loading indicator
+  const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState(false);
   const observer = useRef(null);
-  const limit = 10; // Number of deliveries to fetch per page
+  const limit = 40;
 
-  const fetchData = useCallback(async (currentPage) => {
+  const onLoginSuccess = (response) => {
+    const { credential } = response; // Get the credential from the response
     try {
-      setLoading(true); // Show loading indicator
-      const offset = currentPage * limit;
-      const response = await fetch(`https://server-pass-1.onrender.com/api/data?limit=${limit}&offset=${offset}`);
-      const data = await response.json();
+      const decodedToken = jwtDecode(credential); // Decode the JWT token
+      console.log('Decoded Token:', decodedToken); // Log the decoded token for debugging
 
-      const tasksArray = Object.values(data).flat();
-      const filteredDeliveries = tasksArray.filter((delivery) => delivery.Step_ID === 0);
-
-      const newDeliveries = filteredDeliveries.map((delivery) => ({
-        delCode: delivery.DelCode_w_o__,
-        client: `${delivery.Short_description} for ${delivery.Client}`,
-        initiated: formatTimestamp(delivery.Planned_Start_Timestamp),
-        deadline: calculateDeadline(delivery.Planned_Delivery_Timestamp, delivery.Planned_Start_Timestamp),
-        tasksPlanned: delivery.Planned_Tasks || 0,
-        tasksTotal: delivery.Total_Tasks || 0,
-      }));
-
-      setDeliveries((prev) => [...prev, ...newDeliveries]);
+      if (decodedToken.email) {
+        setUserEmail(decodedToken.email); // Set user email on login success
+        console.log('User Email:', decodedToken.email); // Log the user's email
+      } else {
+        console.error('Login response does not contain a valid email:', response);
+      }
     } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false); // Hide loading indicator
+      console.error('Error decoding JWT:', error);
     }
-  }, [limit]);
+  };
+
+  const onLoginFailure = (error) => {
+    console.error('Login failed:', error);
+  };
+
+  const fetchData = useCallback(
+    async (currentPage) => {
+      if (!userEmail) return; // Fetch only if the user is logged in
+      try {
+        setLoading(true);
+        const offset = currentPage * limit;
+        const response = await fetch(
+          `http://localhost:3001/api/data?limit=${limit}&offset=${offset}`
+        );
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+
+        const data = await response.json();
+        const tasksArray = Object.values(data).flat();
+        const filteredDeliveries = tasksArray.filter(
+          (delivery) => delivery.Step_ID === 0 && delivery.Email === userEmail
+        );
+
+        const newDeliveries = filteredDeliveries.map((delivery) => ({
+          delCode: delivery.DelCode_w_o__,
+          client: `${delivery.Short_description} for ${delivery.Client}`,
+          initiated: formatTimestamp(delivery.Planned_Start_Timestamp),
+          deadline: calculateDeadline(
+            delivery.Planned_Delivery_Timestamp,
+            delivery.Planned_Start_Timestamp
+          ),
+          tasksPlanned: delivery.Planned_Tasks || 0,
+          tasksTotal: delivery.Total_Tasks || 0,
+        }));
+
+        setDeliveries((prev) => [...prev, ...newDeliveries]);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [limit, userEmail]
+  );
 
   useEffect(() => {
-    fetchData(0); // Fetch the first page on mount
-  }, [fetchData]);
+    if (userEmail) fetchData(0); // Fetch data when user logs in
+  }, [fetchData, userEmail]);
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'No start time';
@@ -93,7 +329,6 @@ const DeliveryList = () => {
     };
   }, [filteredDeliveries, loading]);
 
-  // Fetch more data whenever `page` changes
   useEffect(() => {
     if (page > 0) {
       fetchData(page);
@@ -102,94 +337,121 @@ const DeliveryList = () => {
 
   return (
     <Container>
-      <h1 className="my-4">List of Deliveries</h1>
+      {!userEmail ? (
+        <GoogleLogin
+          onSuccess={onLoginSuccess}
+          onFailure={onLoginFailure}
+          scope="email" // Make sure to request email scope
+          cookiePolicy={'single_host_origin'}
+          buttonText="Login with Google"
+        />
+      ) : (
+        <>
+          <h1 className="my-4">List of Deliveries</h1>
 
-      <Row className="mb-4">
-        <Col xs={10}>
-          <Form.Control
-            type="text"
-            placeholder="Search for deliveries..."
-            value={searchTerm}
-            onChange={handleSearchChange}
-          />
-        </Col>
-        <Col xs={2} className="text-right">
-          <span role="img" aria-label="filter" style={{ fontSize: '1.5rem', cursor: 'pointer' }}>
-            🔍
-          </span>
-        </Col>
-      </Row>
-
-      <p>You have {filteredDeliveries.length} active deliveries</p>
-
-      <Row>
-        {filteredDeliveries.map((delivery) => {
-          const progress = delivery.tasksTotal === 0 ? 0 : (delivery.tasksPlanned / delivery.tasksTotal) * 100;
-
-          return (
-            <Col xs={12} key={delivery.delCode} className="mb-3">
-              <LazyLoad
-                height={200}
-                offset={100}
-                once
-                placeholder={
-                  <div className="d-flex justify-content-center align-items-center" style={{ height: '200px' }}>
-                    <FaSpinner className="spinner-icon" style={{ fontSize: '2rem', color: '#007bff', animation: 'spin 1s linear infinite' }} />
-                  </div>
-                }
-              >
-                <Link to={`/delivery/${delivery.delCode}`} className="card-link-wrapper">
-                  <Card className="p-3 shadow-sm task-card">
-                    <div
-                      className="shaded-bg"
-                      style={{ width: `${progress}%` }}
-                    ></div>
-                    <Card.Body>
-                      <div className="d-flex justify-content-between align-items-center">
-                        <div>
-                          <div className="d-flex align-items-center mb-2">
-                            <FiCheckCircle style={{ marginRight: '8px', color: 'green' }} />
-                            <span className="font-weight-bold" style={{ fontSize: '1.5rem' }}>
-                              {delivery.tasksPlanned} of {delivery.tasksTotal} Planned
-                            </span>
-                          </div>
-                          <div className="mb-2">
-                            <ProgressBar
-                              now={progress}
-                              variant={progress > 50 ? 'success' : progress > 20 ? 'warning' : 'danger'}
-                            />
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="mb-1 text-muted">
-                            <FiClock style={{ marginRight: '5px' }} />
-                            {delivery.initiated || 'No start time'}
-                          </p>
-                          <p className="mb-0 text-muted">
-                            <FiFlag style={{ marginRight: '5px' }} />
-                            {delivery.deadline}
-                          </p>
-                        </div>
-                      </div>
-                      <h5 className="mt-3">{delivery.client}</h5>
-                    </Card.Body>
-                  </Card>
-                </Link>
-              </LazyLoad>
+          <Row className="mb-4">
+            <Col xs={10}>
+              <Form.Control
+                type="text"
+                placeholder="Search for deliveries..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+              />
             </Col>
-          );
-        })}
-      </Row>
+            <Col xs={2} className="text-right">
+              <span role="img" aria-label="filter" style={{ fontSize: '1.5rem', cursor: 'pointer' }}>
+                🔍
+              </span>
+            </Col>
+          </Row>
 
-      {loading && (
-        <div className="text-center my-4">
-          <FaSpinner className="spinner-icon" style={{ fontSize: '2rem', color: '#007bff', animation: 'spin 1s linear infinite' }} />
-        </div>
+          <p>You have {filteredDeliveries.length} active deliveries</p>
+
+          <Row>
+            {filteredDeliveries.map((delivery) => {
+              const progress =
+                delivery.tasksTotal === 0 ? 0 : (delivery.tasksPlanned / delivery.tasksTotal) * 100;
+
+              return (
+                <Col xs={12} key={delivery.delCode} className="mb-3">
+                  <LazyLoad
+                    height={200}
+                    offset={100}
+                    once
+                    placeholder={
+                      <div
+                        className="d-flex justify-content-center align-items-center"
+                        style={{ height: '200px' }}
+                      >
+                        <FaSpinner
+                          className="spinner-icon"
+                          style={{
+                            fontSize: '2rem',
+                            color: '#007bff',
+                            animation: 'spin 1s linear infinite',
+                          }}
+                        />
+                      </div>
+                    }
+                  >
+                    <Link to={`/delivery/${delivery.delCode}`} className="card-link-wrapper">
+                      <Card className="p-3 shadow-sm task-card">
+                        <div className="shaded-bg" style={{ width: `${progress}%` }}></div>
+                        <Card.Body>
+                          <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                              <div className="d-flex align-items-center mb-2">
+                                <FiCheckCircle style={{ marginRight: '8px', color: 'green' }} />
+                                <span
+                                  className="font-weight-bold"
+                                  style={{ fontSize: '1.5rem' }}
+                                >
+                                  {delivery.tasksPlanned} of {delivery.tasksTotal} Planned
+                                </span>
+                              </div>
+                              <div className="mb-2">
+                                <ProgressBar
+                                  now={progress}
+                                  variant={progress > 50 ? 'success' : progress > 20 ? 'warning' : 'danger'}
+                                />
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="mb-1 text-muted">
+                                <FiClock style={{ marginRight: '5px' }} />
+                                {delivery.initiated || 'No start time'}
+                              </p>
+                              <p className="mb-0 text-muted">
+                                <FiFlag style={{ marginRight: '5px' }} />
+                                {delivery.deadline}
+                              </p>
+                            </div>
+                          </div>
+                          <h5 className="mt-3">{delivery.client}</h5>
+                        </Card.Body>
+                      </Card>
+                    </Link>
+                  </LazyLoad>
+                </Col>
+              );
+            })}
+          </Row>
+
+          {loading && (
+            <div className="text-center my-4">
+              <FaSpinner
+                className="spinner-icon"
+                style={{ fontSize: '2rem', color: '#007bff', animation: 'spin 1s linear infinite' }}
+              />
+            </div>
+          )}
+
+          <div className="delivery-list-end" style={{ height: '1px', marginBottom: '20px' }}></div>
+        </>
       )}
-
-      <div className="delivery-list-end" style={{ height: '1px', marginBottom: '20px' }}></div>
     </Container>
   );
 };
 
 export default DeliveryList;
+
