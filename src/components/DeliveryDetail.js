@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState,useContext } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { Container, Card, ListGroup, Row, Col, Spinner } from 'react-bootstrap';
 import Dropdown from 'rc-dropdown';
 import Menu, { Item as MenuItem } from 'rc-menu';
 import { FaPause, FaPlay, FaStop, FaCalendarAlt } from 'react-icons/fa';
+import { UserContext } from './UserContext';
 import FormComponent from './FormComponent'; // Ensure your form component is imported
 import 'rc-dropdown/assets/index.css';
 import './DeliveryDetail.css';
@@ -11,7 +12,7 @@ import './DeliveryDetail.css';
 const DeliveryDetail = () => {
     const location = useLocation();
     const delCode = location.pathname.substring(location.pathname.lastIndexOf("/data/") + 11); // Adjust to your actual path
-
+    const { userEmail } = useContext(UserContext);
     const [delivery, setDelivery] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -26,7 +27,7 @@ const DeliveryDetail = () => {
                 setLoading(true); // Set loading state to true
 
                 // Fetch delivery data
-                const deliveryResponse = await fetch(`https://server-pass-1.onrender.com/api/data`);
+                const deliveryResponse = await fetch(`https://server-pass-1.onrender.com/api/data?email=${userEmail}`);
                 if (!deliveryResponse.ok) {
                     throw new Error(`HTTP error! status: ${deliveryResponse.status}`);
                 }
