@@ -245,7 +245,7 @@ const DeliveryList = () => {
       try {
         setLoading(true);
         const offset = currentPage * limit;
-        const response = await fetch(`http://localhost:3001/api/data?email=${userEmail}&limit=${limit}&offset=${offset}`, {
+        const response = await fetch(`https://server-pass-1.onrender.com/api/data?email=${userEmail}&limit=${limit}&offset=${offset}`, {
           headers: {
             Authorization: `Bearer ${authToken}`,
             "Content-Type": "application/json",
