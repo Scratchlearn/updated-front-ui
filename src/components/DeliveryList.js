@@ -200,29 +200,32 @@ import { Link } from 'react-router-dom';
 import { Container, Row, Col, Card, ProgressBar, Form } from 'react-bootstrap';
 import { FiClock, FiCheckCircle, FiFlag } from 'react-icons/fi';
 import { FaSpinner } from 'react-icons/fa';
-import { GoogleLogin } from '@react-oauth/google'; // Import Google login
+import { GoogleLogin } from '@react-oauth/google';
 import LazyLoad from 'react-lazyload';
-import {jwtDecode} from 'jwt-decode'; // Import jwt-decode library
+import {jwtDecode} from 'jwt-decode'; // Corrected import for jwt-decode
 import './DeliveryList.css';
+const limit = 500;
+
 
 const DeliveryList = () => {
-  const [userEmail, setUserEmail] = useState(null); // State for user email
+  const [userEmail, setUserEmail] = useState(null);
   const [deliveries, setDeliveries] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [authToken, setAuthToken] = useState(null);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const observer = useRef(null);
-  const limit = 40;
 
   const onLoginSuccess = (response) => {
-    const { credential } = response; // Get the credential from the response
+    const { credential } = response;
     try {
-      const decodedToken = jwtDecode(credential); // Decode the JWT token
-      console.log('Decoded Token:', decodedToken); // Log the decoded token for debugging
+      const decodedToken = jwtDecode(credential);
+      console.log('Decoded Token:', decodedToken);
 
       if (decodedToken.email) {
-        setUserEmail(decodedToken.email); // Set user email on login success
-        console.log('User Email:', decodedToken.email); // Log the user's email
+        setUserEmail(decodedToken.email);
+        setAuthToken(credential);
+        console.log('User Email:', decodedToken.email);
       } else {
         console.error('Login response does not contain a valid email:', response);
       }
@@ -237,13 +240,17 @@ const DeliveryList = () => {
 
   const fetchData = useCallback(
     async (currentPage) => {
-      if (!userEmail) return; // Fetch only if the user is logged in
+      if (!authToken || !userEmail) return; // Ensure both authToken and userEmail are present
+      
       try {
         setLoading(true);
         const offset = currentPage * limit;
-        const response = await fetch(
-          `https://server-pass-1.onrender.com/api/data?limit=${limit}&offset=${offset}`
-        );
+        const response = await fetch(`http://localhost:3001/api/data?email=${userEmail}&limit=${limit}&offset=${offset}`, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+          },
+        });
 
         if (!response.ok) {
           throw new Error('Network response was not ok');
@@ -252,7 +259,7 @@ const DeliveryList = () => {
         const data = await response.json();
         const tasksArray = Object.values(data).flat();
         const filteredDeliveries = tasksArray.filter(
-          (delivery) => delivery.Step_ID === 0 && delivery.Email === userEmail
+          (delivery) => delivery.Step_ID === 0
         );
 
         const newDeliveries = filteredDeliveries.map((delivery) => ({
@@ -274,11 +281,11 @@ const DeliveryList = () => {
         setLoading(false);
       }
     },
-    [limit, userEmail]
+    [authToken, userEmail]
   );
 
   useEffect(() => {
-    if (userEmail) fetchData(0); // Fetch data when user logs in
+    if (userEmail) fetchData(0); // Fetch data only when userEmail is defined
   }, [fetchData, userEmail]);
 
   const formatTimestamp = (timestamp) => {
@@ -341,7 +348,7 @@ const DeliveryList = () => {
         <GoogleLogin
           onSuccess={onLoginSuccess}
           onFailure={onLoginFailure}
-          scope="email" // Make sure to request email scope
+          scope="email"
           cookiePolicy={'single_host_origin'}
           buttonText="Login with Google"
         />
@@ -446,7 +453,7 @@ const DeliveryList = () => {
             </div>
           )}
 
-          <div className="delivery-list-end" style={{ height: '1px', marginBottom: '20px' }}></div>
+          <div className="delivery-list-end" />
         </>
       )}
     </Container>
@@ -454,4 +461,3 @@ const DeliveryList = () => {
 };
 
 export default DeliveryList;
-
