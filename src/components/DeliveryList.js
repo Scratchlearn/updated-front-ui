@@ -195,7 +195,7 @@
 // export default DeliveryList;
 
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback,useContext} from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Row, Col, Card, ProgressBar, Form } from 'react-bootstrap';
 import { FiClock, FiCheckCircle, FiFlag } from 'react-icons/fi';
@@ -208,7 +208,8 @@ const limit = 500;
 
 
 const DeliveryList = () => {
-  const [userEmail, setUserEmail] = useState(null);
+  
+  const { userEmail, setUserEmail } = useContext(UserContext);
   const [deliveries, setDeliveries] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [authToken, setAuthToken] = useState(null);
