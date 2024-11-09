@@ -287,7 +287,16 @@ const DeliveryList = () => {
     },
     [authToken, userEmail]
   );
+  useEffect(() => {
+    // Check if userEmail and authToken are stored in sessionStorage
+    const storedUserEmail = sessionStorage.getItem('userEmail');
+    const storedAuthToken = sessionStorage.getItem('authToken');
 
+    if (storedUserEmail && storedAuthToken) {
+      setUserEmail(storedUserEmail);
+      setAuthToken(storedAuthToken);
+    }
+  }, [setUserEmail]);
   useEffect(() => {
     if (userEmail) fetchData(0); // Fetch data only when userEmail is defined
   }, [fetchData, userEmail]);
