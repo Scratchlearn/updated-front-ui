@@ -227,6 +227,8 @@ const DeliveryList = () => {
       if (decodedToken.email) {
         setUserEmail(decodedToken.email);
         setAuthToken(credential);
+        sessionStorage.setItem('userEmail', decodedToken.email);
+        sessionStorage.setItem('authToken', credential);
         console.log('User Email:', decodedToken.email);
       } else {
         console.error('Login response does not contain a valid email:', response);
