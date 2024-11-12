@@ -263,6 +263,9 @@
 //             </Link>
 //         </Container>
 //     );
+// };
+
+// export default DeliveryDetail;
 
 import React, { useEffect, useState, useContext } from 'react';
 import { useLocation, Link } from 'react-router-dom';
@@ -535,6 +538,3 @@ const DeliveryDetail = () => {
 
 export default DeliveryDetail;
 
-// };
-
-// export default DeliveryDetail;
