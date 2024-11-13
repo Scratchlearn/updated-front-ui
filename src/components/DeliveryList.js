@@ -445,6 +445,9 @@ const DeliveryList = () => {
                                 <FiFlag style={{ marginRight: '5px' }} />
                                 {delivery.deadline}
                               </p>
+                                <p>
+                               {delivery.delCode}
+                              </p>
                             </div>
                           </div>
                           <h5 className="mt-3">{delivery.client}</h5>
