@@ -159,7 +159,7 @@ const FormComponent = ({ onSubmit, task }) => {
 
                 console.log('Scheduled Data:', scheduledData);
 
-                fetch('https://server-pass-1.onrender.com/api/data', {
+                fetch('https://server-pass-1.onrender.com/api/post', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
