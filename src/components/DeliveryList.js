@@ -652,7 +652,7 @@ const DeliveryList = () => {
 
    // Get unique clients for the dropdown
    const uniqueClients = [...new Set(deliveries.map((delivery) => delivery.client))];
-   console.log(deliveries)
+  
 
   return (
     <Container>
