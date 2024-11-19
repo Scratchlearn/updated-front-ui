@@ -331,7 +331,6 @@ const DeliveryDetail = () => {
                     });
                     setDelivery(deliveryData[delCode]);
                     setTasks(fetchedTasks); // Setting tasks with scheduling info
-                    console.log(fetchedTasks)
                 } else {
                     setError('Delivery not found.');
                 }
@@ -366,7 +365,7 @@ const DeliveryDetail = () => {
 
     // Handle form submission from FormComponent
     const handleFormSubmit = (formData) => {
-        console.log(formData)
+       
         const updatedTasks = tasks.map((task) =>
             task.Key === activeTaskKey
                 ? {
