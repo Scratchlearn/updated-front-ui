@@ -484,13 +484,13 @@ import { Container, Row, Col, Card, ProgressBar, Form } from 'react-bootstrap';
 import { FiClock, FiCheckCircle, FiFlag } from 'react-icons/fi';
 import { FaSpinner } from 'react-icons/fa';
 import { GoogleLogin } from '@react-oauth/google';
-import LazyLoad from 'react-lazyload';
+//import LazyLoad from 'react-lazyload';
 import {jwtDecode} from 'jwt-decode';
 import { Dropdown } from 'react-bootstrap';
 import { UserContext } from './UserContext'; // Import UserContext
 import './DeliveryList.css';
 
-const limit = 500;
+//const limit = 500;
 
 const DeliveryList = () => {
   const { userEmail, setUserEmail } = useContext(UserContext);
@@ -533,8 +533,8 @@ const DeliveryList = () => {
       
       try {
         setLoading(true);
-        const offset = currentPage * limit;
-        const response = await fetch(`https://server-pass-1.onrender.com/api/data?email=${userEmail}&limit=${limit}&offset=${offset}`, {
+       // const offset = currentPage * limit;
+        const response = await fetch(`https://server-pass-1.onrender.com/api/data?email=${userEmail}`, {
           headers: {
             Authorization: `Bearer ${authToken}`,
             "Content-Type": "application/json",
@@ -710,26 +710,7 @@ const DeliveryList = () => {
 
               return (
                 <Col xs={12} key={delivery.delCode} className="mb-3">
-                  <LazyLoad
-                    height={200}
-                    offset={100}
-                    once
-                    placeholder={
-                      <div
-                        className="d-flex justify-content-center align-items-center"
-                        style={{ height: '200px' }}
-                      >
-                        <FaSpinner
-                          className="spinner-icon"
-                          style={{
-                            fontSize: '2rem',
-                            color: '#007bff',
-                            animation: 'spin 1s linear infinite',
-                          }}
-                        />
-                      </div>
-                    }
-                  >
+                 
                     <Link to={`/delivery/${delivery.delCode}`} className="card-link-wrapper">
                       <Card className="p-3 shadow-sm task-card">
                         <div className="shaded-bg" style={{ width: `${progress}%` }}></div>
@@ -767,7 +748,7 @@ const DeliveryList = () => {
                         </Card.Body>
                       </Card>
                     </Link>
-                  </LazyLoad>
+                
                 </Col>
               );
             })}
