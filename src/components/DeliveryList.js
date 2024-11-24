@@ -527,30 +527,81 @@ const DeliveryList = () => {
     console.error('Login failed:', error);
   };
 
-  const fetchData = useCallback(
+  // const fetchData = useCallback(
+  //   async (currentPage) => {
+  //     if (!authToken || !userEmail) return; // Ensure both authToken and userEmail are present
+      
+  //     try {
+  //       setLoading(true);
+  //      // const offset = currentPage * limit;
+  //       const response = await fetch(`https://server-pass-1.onrender.com/api/data?email=${userEmail}`, {
+  //         headers: {
+  //           Authorization: `Bearer ${authToken}`,
+  //           "Content-Type": "application/json",
+  //         },
+  //       });
+
+  //       if (!response.ok) {
+  //         throw new Error('Network response was not ok');
+  //       }
+
+  //       const data = await response.json();
+  //       const tasksArray = Object.values(data).flat();
+  //       const filteredDeliveries = tasksArray.filter(
+  //         (delivery) => delivery.Step_ID === 0
+  //       );
+
+  //       const newDeliveries = filteredDeliveries.map((delivery) => ({
+  //         delCode: delivery.DelCode_w_o__,
+  //         client: `${delivery.Client}`,
+  //         initiated: formatTimestamp(delivery.Planned_Start_Timestamp),
+  //         deadline: calculateDeadline(
+  //           delivery.Planned_Delivery_Timestamp,
+  //           delivery.Planned_Start_Timestamp
+  //         ),
+  //         tasksPlanned: delivery.Planned_Tasks || 0,
+  //         tasksTotal: delivery.Total_Tasks || 0,
+  //       }));
+
+  //       setDeliveries((prev) => [...prev, ...newDeliveries]);
+  //     } catch (error) {
+  //       console.error('Error fetching data:', error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   },
+  //   [authToken, userEmail]
+  // );
+   const fetchData = useCallback(
     async (currentPage) => {
       if (!authToken || !userEmail) return; // Ensure both authToken and userEmail are present
       
       try {
         setLoading(true);
-       // const offset = currentPage * limit;
-        const response = await fetch(`https://server-pass-1.onrender.com/api/data?email=${userEmail}`, {
+  
+        const response = await fetch(`https://server-pass-1.onrender.com/api/data?email=${userEmail}&page=${currentPage}`, {
           headers: {
             Authorization: `Bearer ${authToken}`,
             "Content-Type": "application/json",
           },
         });
-
+  
         if (!response.ok) {
           throw new Error('Network response was not ok');
         }
-
+  
         const data = await response.json();
         const tasksArray = Object.values(data).flat();
-        const filteredDeliveries = tasksArray.filter(
-          (delivery) => delivery.Step_ID === 0
-        );
-
+        
+        // Filter deliveries that are active (Step_ID === 0)
+        const filteredDeliveries = tasksArray.filter((delivery) => delivery.Step_ID === 0);
+  
+        // If there are no new deliveries, stop pagination
+        if (filteredDeliveries.length === 0) {
+          console.log("No new deliveries to load, stopping further fetch.");
+          return;
+        }
+  
         const newDeliveries = filteredDeliveries.map((delivery) => ({
           delCode: delivery.DelCode_w_o__,
           client: `${delivery.Client}`,
@@ -562,8 +613,23 @@ const DeliveryList = () => {
           tasksPlanned: delivery.Planned_Tasks || 0,
           tasksTotal: delivery.Total_Tasks || 0,
         }));
-
-        setDeliveries((prev) => [...prev, ...newDeliveries]);
+  
+        // Remove any deliveries that are already in the state (based on unique delCode)
+        setDeliveries((prev) => {
+          // Filter out deliveries that are already in the state by checking `delCode`
+          const newUniqueDeliveries = newDeliveries.filter(
+            (newDel) => !prev.some((prevDel) => prevDel.delCode === newDel.delCode)
+          );
+  
+          // If no new unique deliveries, prevent updating state
+          if (newUniqueDeliveries.length === 0) {
+            console.log('No new unique deliveries to add.');
+            return prev;
+          }
+  
+          // Otherwise, add the new unique deliveries to the state
+          return [...prev, ...newUniqueDeliveries];
+        });
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
