@@ -700,7 +700,7 @@ const DeliveryDetail = () => {
     }
 
     const client = delivery[0]?.Client || 'Unknown Client';
-    const shortDescription = delivery[0]?.Short_description || 'No description available';
+    const shortDescription = delivery[0]?.Short_Description || 'No description available';
     const plannedStart = delivery[0]?.Planned_Start_Timestamp?.value ? new Date(delivery[0].Planned_Start_Timestamp.value).toLocaleString() : 'N/A';
     const plannedDelivery = delivery[0]?.Planned_Delivery_Timestamp?.value ? new Date(delivery[0].Planned_Delivery_Timestamp.value).toLocaleString() : 'N/A';
 
