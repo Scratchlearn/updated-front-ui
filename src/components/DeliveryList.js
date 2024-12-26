@@ -489,6 +489,7 @@ import {jwtDecode} from 'jwt-decode';
 import { Dropdown } from 'react-bootstrap';
 import { UserContext } from './UserContext'; // Import UserContext
 import './DeliveryList.css';
+import DeleteButton from './DeleteButton';
 
 //const limit = 500;
 
@@ -639,6 +640,16 @@ const DeliveryList = () => {
     [authToken, userEmail]
   );
 
+
+
+
+   const handleDelete = (deliveryCode) => {
+    // Update the state to remove the deleted delivery
+    setDeliveries(deliveries.filter(delivery => delivery.DelCode_w_o__ !== deliveryCode));
+  };
+
+
+  
   useEffect(() => {
     // Check if userEmail and authToken are stored in sessionStorage
     const storedUserEmail = sessionStorage.getItem('userEmail');
@@ -791,6 +802,7 @@ const DeliveryList = () => {
                                 >
                                   {delivery.tasksPlanned} of {delivery.tasksTotal} Planned
                                 </span>
+                                    <DeleteButton deliveryCode={delivery.delCode} onDelete={handleDelete} />
                               </div>
                               <div className="mb-2">
                                 <ProgressBar
