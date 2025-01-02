@@ -611,8 +611,8 @@ const DeliveryList = () => {
             delivery.Planned_Delivery_Timestamp,
             delivery.Planned_Start_Timestamp
           ),
-          tasksPlanned: delivery.Planned_Tasks || 0,
-          tasksTotal: delivery.Total_Tasks || 0,
+          tasksPlanned: delivery.Planned_Tasks ,
+          tasksTotal: delivery.Total_Tasks,
         }));
   
         // Remove any deliveries that are already in the state (based on unique delCode)
