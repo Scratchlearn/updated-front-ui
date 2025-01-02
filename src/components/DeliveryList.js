@@ -595,7 +595,7 @@ const DeliveryList = () => {
         const tasksArray = Object.values(data).flat();
         
         // Filter deliveries that are active (Step_ID === 0)
-        const filteredDeliveries = tasksArray.filter((delivery) => delivery.Step_ID === 0 || delivery.Step_ID === 1 );
+        const filteredDeliveries = tasksArray.filter((delivery) => delivery.Step_ID === 0);
   
         // If there are no new deliveries, stop pagination
         if (filteredDeliveries.length === 0) {
